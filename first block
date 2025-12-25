@@ -1,0 +1,13 @@
+# @title 1. Install & Import Libraries
+!pip install mne matplotlib numpy scipy
+
+import mne
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from IPython.display import HTML
+import matplotlib.patches as patches
+
+# Configure MNE to be less verbose
+mne.set_log_level('ERROR')
+print("Libraries installed and ready!")
