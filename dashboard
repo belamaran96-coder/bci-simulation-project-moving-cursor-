@@ -1,0 +1,75 @@
+# @title 3. Run BCI Simulation (Live Animation)
+
+# Setup the Figure
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), gridspec_kw={'height_ratios': [1, 2]})
+plt.subplots_adjust(hspace=0.3)
+
+# --- Plot 1: Live EEG Signal (Alpha Power) ---
+ax1.set_title("Real-Time Brain Feature: Alpha Power (8-12Hz)", fontsize=12)
+ax1.set_xlim(0, 100)
+ax1.set_ylim(0, 1)
+ax1.set_ylabel("Relaxation Level")
+line_power, = ax1.plot([], [], color='#8e44ad', lw=2)
+threshold_line = ax1.axhline(y=0.5, color='gray', linestyle='--', alpha=0.5)
+
+# --- Plot 2: The BCI Cursor Game ---
+ax2.set_title("BCI Output: Mind-Controlled Cursor", fontsize=12)
+ax2.set_xlim(-1, 1)
+ax2.set_ylim(0, 1)
+ax2.axis('off') # Hide axes for a "Game UI" look
+
+# Draw the Background "Board"
+rect = patches.Rectangle((-0.8, 0), 1.6, 1, linewidth=2, edgecolor='#333', facecolor='#f0f0f0')
+ax2.add_patch(rect)
+
+# Draw Zones
+ax2.text(-0.95, 0.8, "RELAXED\n(High Alpha)", verticalalignment='center', fontsize=10, color='green')
+ax2.text(-0.95, 0.2, "FOCUSED\n(Low Alpha)", verticalalignment='center', fontsize=10, color='red')
+
+# The Cursor (Red Circle)
+cursor = patches.Circle((0, 0.5), radius=0.05, color='#e74c3c', label='Cursor')
+ax2.add_patch(cursor)
+
+# Target Zone (Green Bar at the top)
+target = patches.Rectangle((-0.6, 0.85), 1.2, 0.1, color='#2ecc71', alpha=0.5)
+ax2.add_patch(target)
+ax2.text(0, 0.9, "TARGET ZONE", ha='center', va='center', color='white', fontweight='bold')
+
+
+# --- Animation Logic ---
+window_width = 100
+cursor_y = 0.5 # Start in middle
+
+def update(frame):
+    global cursor_y
+    
+    # 1. Update Power Plot (Scrolling Buffer)
+    current_idx = frame
+    start_idx = max(0, current_idx - window_width)
+    y_data = norm_power[start_idx:current_idx]
+    x_data = range(len(y_data))
+    
+    line_power.set_data(x_data, y_data)
+    
+    # 2. Update Cursor Physics
+    # If Power is High (>0.5), Cursor moves UP. If Low, moves DOWN.
+    target_y = norm_power[current_idx]
+    
+    # "Smooth" movement (Linear Interpolation)
+    cursor_y = cursor_y * 0.9 + target_y * 0.1
+    
+    cursor.center = (0, cursor_y)
+    
+    # Change color if hitting target
+    if cursor_y > 0.85:
+        cursor.set_color('#27ae60') # Green (Success)
+    else:
+        cursor.set_color('#e74c3c') # Red (Normal)
+
+    return line_power, cursor
+
+# Create Animation (Show 400 frames ~ 20 seconds of data)
+anim = FuncAnimation(fig, update, frames=range(10, 400), interval=50, blit=True)
+
+print("Rendering Simulation... (Wait for the video to appear)")
+HTML(anim.to_jshtml())
