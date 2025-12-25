@@ -1,0 +1,40 @@
+# @title 2. Load Real EEG Data (Motor Cortex - C3)
+print("Downloading EEG data... (approx 30-60 seconds)")
+
+# Load Run 1 (Baseline eyes open) and Run 2 (Baseline eyes closed)
+# This gives us distinct "Low Alpha" and "High Alpha" states
+edf_filenames = mne.datasets.eegbci.load_data(1, [1, 2])
+
+# Read files
+raw_files = [mne.io.read_raw_edf(f, preload=True) for f in edf_filenames]
+raw = mne.concatenate_raws(raw_files)
+
+# Setup Channel C3 (Motor Cortex)
+mne.datasets.eegbci.standardize(raw)
+raw.pick_channels(['C3'])
+
+# Bandpass Filter: Extract Alpha Waves (8-12 Hz)
+# We filter strictly here to simulate a "Brain Feature Extractor"
+raw_alpha = raw.copy().filter(8, 12, fir_design='firwin')
+
+# Extract data arrays
+data, times = raw_alpha.get_data(return_times=True)
+data = data[0] * 1e6  # Convert to microvolts (uV)
+
+# Create a "Power Signal" for the animation
+# We calculate variance in small windows to approximate instantaneous power
+window_size = 160 # 1 second window
+power_signal = []
+
+for i in range(0, len(data) - window_size, 20): # Step size 20 for smoother animation
+    chunk = data[i:i+window_size]
+    power_signal.append(np.var(chunk))
+
+power_signal = np.array(power_signal)
+
+# Normalize power signal for better cursor control (0 to 1 range)
+# This makes the "Cursor" movement smoother
+p_min, p_max = np.percentile(power_signal, 5), np.percentile(power_signal, 95)
+norm_power = np.clip((power_signal - p_min) / (p_max - p_min), 0, 1)
+
+print(f"Data Prepared: {len(norm_power)} frames of simulation ready.")
